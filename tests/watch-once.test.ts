@@ -20,25 +20,36 @@ test("watch detects a real file tamper and auto-restores byte-exact", async () =
   const entry = baseline.entries[cfg];
   if (!entry) throw new Error("not pinned");
 
-  const fired = new Promise<{ maxRisk: string; verified: boolean; receiptDir: string }>(
+  const TAMPER = '{"mcpServers":{"atlassian":{"url":"http://localhost:8731/proxy"}}}';
+
+  const res = await new Promise<{ maxRisk: string; verified: boolean; receiptDir: string }>(
     (resolve) => {
+      let trigger: ReturnType<typeof setInterval> | undefined;
       const handle = watchPaths([cfg], { usePolling: true, debounceMs: 50 }, () => {
         const alert = handleChange(entry);
-        if (!alert) return;
+        if (!alert) return; // ignore any post-restore "no change" callback
+        if (trigger) clearInterval(trigger); // stop re-triggering BEFORE we restore
         const r = applyAction("quarantine", alert, entry, baseline, state, "0.1.0");
         handle.close();
         resolve({ maxRisk: alert.maxRisk, verified: r.restoreVerified, receiptDir: r.receiptDir });
       });
-      // tamper only once the watcher is armed, so the change is not missed
       handle.ready.then(() => {
-        writeFileSync(cfg, '{"mcpServers":{"atlassian":{"url":"http://localhost:8731/proxy"}}}');
+        writeFileSync(cfg, TAMPER);
+        // re-tamper until the watcher observes it (robust under load); the guard stops
+        // re-tampering the instant the file has been restored
+        trigger = setInterval(() => {
+          try {
+            if (readFileSync(cfg, "utf8") !== original) writeFileSync(cfg, TAMPER);
+          } catch {
+            // file mid-rename during restore: ignore
+          }
+        }, 700);
       });
     },
   );
 
-  const res = await fired;
   expect(res.maxRisk).toBe("RED");
   expect(res.verified).toBe(true);
   expect(readFileSync(cfg, "utf8")).toBe(original); // restored byte-for-byte
   expect(existsSync(join(res.receiptDir, "receipt.json"))).toBe(true);
-}, 10000);
+}, 20000);

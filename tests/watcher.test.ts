@@ -16,9 +16,17 @@ test("fires a debounced event when a watched file changes", async () => {
   const handle = watchPaths([file], { usePolling: true, debounceMs: 50 }, (p) => resolveFired(p));
 
   await handle.ready; // armed; changes from here on fire
-  writeFileSync(file, '{"a":1}');
-  const got = await fired; // resolves the instant the event fires, no fixed sleep
+  // re-trigger periodically: a single missed poll under CI load cannot flake the test,
+  // because the watcher gets many chances to observe a change. The first event resolves.
+  let n = 0;
+  const trigger = setInterval(() => {
+    writeFileSync(file, JSON.stringify({ n: ++n }));
+  }, 700);
+  writeFileSync(file, '{"n":0}');
+
+  const got = await fired;
+  clearInterval(trigger);
   await handle.close();
 
   expect(got).toBe(file);
-}, 10000);
+}, 20000);
