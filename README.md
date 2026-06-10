@@ -1,5 +1,6 @@
 # tamperbell
 
+[![npm](https://img.shields.io/npm/v/tamperbell.svg)](https://www.npmjs.com/package/tamperbell)
 [![CI](https://github.com/san64777/tamperbell/actions/workflows/ci.yml/badge.svg)](https://github.com/san64777/tamperbell/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/san64777/tamperbell/blob/main/LICENSE)
 [![Node](https://img.shields.io/badge/node-20.11+-blue.svg)](https://nodejs.org/)
