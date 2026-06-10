@@ -1,6 +1,6 @@
 {
   "name": "tamperbell",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Pins your Claude Code configs to a signed baseline and rings the moment anything tampers with them - with a risk-ranked MCP-aware diff, one-keypress restore, and an evidence receipt.",
   "type": "module",
   "license": "Apache-2.0",

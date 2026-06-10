@@ -5,12 +5,13 @@ import { createInterface } from "node:readline";
 import { applyAction } from "./actions.ts";
 import { ClaudeCodeAdapter } from "./adapters/claude-code.ts";
 import { type BaselineFile, loadBaseline, pin } from "./baseline.ts";
+import { runDemo } from "./demo.ts";
 import { handleChange } from "./pipeline.ts";
 import { restoreFile } from "./restore.ts";
 import { renderAlert } from "./tui.ts";
 import { watchPaths } from "./watcher.ts";
 
-export const version = "0.0.0";
+export const version = "0.1.0";
 
 const out = (s: string): void => {
   process.stdout.write(s);
@@ -133,7 +134,7 @@ async function main(argv: string[]): Promise<number> {
     case "restore":
       return cmdRestore(argv[3]);
     case "demo":
-      out("demo mode lands in Day 4 (the sandboxed npm-postinstall arc)\n");
+      runDemo(undefined, { keep: argv.includes("--keep") });
       return 0;
     default:
       out(`tamperbell ${version}\n  watch | status | bless | restore [file] | demo\n`);
