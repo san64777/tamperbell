@@ -19,3 +19,18 @@ export interface WatchedConfig {
   kind: "claude-json" | "settings" | "mcp-json";
   schemaHint: "mcp" | "settings";
 }
+
+export interface RankedChange extends ConfigChange {
+  risk: Risk;
+}
+
+export type AlertReason = "changed" | "deleted" | "unparseable" | "formatting";
+
+export interface Alert {
+  path: string;
+  reason: AlertReason;
+  changes: RankedChange[];
+  maxRisk: Risk;
+  currentBytes: Buffer | null; // tampered bytes for the receipt; null when the file was deleted
+  currentHash: string;
+}

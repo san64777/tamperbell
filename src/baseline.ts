@@ -81,8 +81,8 @@ export function pin(configs: WatchedConfig[], stateDir: string): BaselineFile {
       };
       continue;
     }
-    // strip a UTF-8 BOM before parsing (the raw bytes, with BOM, are kept for restore)
-    const { value, parseError } = parseConfig(raw.toString("utf8").replace(/^\uFEFF/, ""));
+    // the raw bytes (incl. any BOM) are kept for restore; parseConfig strips the BOM
+    const { value, parseError } = parseConfig(raw.toString("utf8"));
     entries[cfg.path] = {
       path: cfg.path,
       kind: cfg.kind,
