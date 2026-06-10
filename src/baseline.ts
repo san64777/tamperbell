@@ -105,10 +105,20 @@ export function pin(configs: WatchedConfig[], stateDir: string): BaselineFile {
   return file;
 }
 
-export function loadBaseline(stateDir: string): { file: BaselineFile; valid: boolean } | null {
+// Returns null when no baseline exists; { file: null } when one exists but is corrupt
+// (unreadable JSON); otherwise the parsed baseline plus whether its signature verifies.
+// Never throws: a tamper of the baseline file itself is a detection event, not a crash.
+export function loadBaseline(
+  stateDir: string,
+): { file: BaselineFile | null; valid: boolean } | null {
   const p = join(stateDir, "baseline.json");
   if (!existsSync(p)) return null;
-  const file = JSON.parse(readFileSync(p, "utf8")) as BaselineFile;
+  let file: BaselineFile;
+  try {
+    file = JSON.parse(readFileSync(p, "utf8")) as BaselineFile;
+  } catch {
+    return { file: null, valid: false };
+  }
   const key = ensureKey(stateDir);
   return { file, valid: sign(signable(file), key) === file.signature };
 }

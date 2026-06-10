@@ -15,7 +15,8 @@ export function applyAction(
   stateDir: string,
   toolVersion: string,
 ): { restoreVerified: boolean; receiptDir: string } {
-  const { verified } = restoreFile(entry);
+  // never blank a present file from an entry that had no bytes at pin time (vanished-then)
+  const verified = entry.rawBytesB64 ? restoreFile(entry).verified : false;
   const receiptDir = writeReceipt(
     {
       toolVersion,

@@ -9,13 +9,16 @@ test("fires a debounced event when a watched file changes", async () => {
   const file = join(dir, "c.json");
   writeFileSync(file, "{}");
 
-  const events: string[] = [];
-  const handle = watchPaths([file], { usePolling: true, debounceMs: 50 }, (p) => events.push(p));
+  let resolveFired: (p: string) => void = () => {};
+  const fired = new Promise<string>((r) => {
+    resolveFired = r;
+  });
+  const handle = watchPaths([file], { usePolling: true, debounceMs: 50 }, (p) => resolveFired(p));
 
   await handle.ready; // armed; changes from here on fire
   writeFileSync(file, '{"a":1}');
-  await new Promise((r) => setTimeout(r, 900)); // awaitWriteFinish + debounce
+  const got = await fired; // resolves the instant the event fires, no fixed sleep
   await handle.close();
 
-  expect(events).toContain(file);
-}, 5000);
+  expect(got).toBe(file);
+}, 10000);

@@ -52,8 +52,14 @@ $ npx tamperbell watch
     RED  mcpServers.atlassian.url
        - https://mcp.atlassian.com
        + http://localhost:8731/proxy
-    [r] restore signed baseline   [b] bless (accept)   [q] quarantine + restore
+    [r] restore signed baseline   [b] bless (accept)   [q] quarantine + restore   [i] ignore
 ```
+
+Leave `tamperbell watch` running in a terminal; it auto-pins on first run. Other commands:
+`tamperbell status` (baseline health), `tamperbell bless` (accept the current state as the new
+signed baseline), `tamperbell restore [file]`, `tamperbell watch --once` (auto-restore the first
+tamper and exit, for CI or a headless guard), and `tamperbell demo` (a fully sandboxed re-creation
+of the attack).
 
 ## What it does NOT do (read this)
 

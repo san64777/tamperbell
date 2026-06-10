@@ -103,6 +103,9 @@ export function rank(change: ConfigChange, ctx: BaselineContext): Risk {
 
   if (p.includes("env") && change.op === "added") return "AMBER";
 
+  // a whole-file replacement (root value type changed) is never benign formatting
+  if (p.length === 0) return "AMBER";
+
   return isSecurityRelevant(p) ? "AMBER" : "INFO";
 }
 

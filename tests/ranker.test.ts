@@ -151,6 +151,10 @@ test("a change outside the security subtree is INFO (benign self-write)", () => 
   expect(rank(ch(["projects", "/home/x", "lastUsed"], "modified", 1, 2), ctx)).toBe("INFO");
 });
 
+test("a whole-file replacement (root type change) is at least AMBER, not INFO", () => {
+  expect(rank(ch([], "modified", { mcpServers: {} }, "garbage"), ctx)).toBe("AMBER");
+});
+
 test("maxRisk returns the highest of a set", () => {
   const changes = [
     ch(["projects", "x"], "modified", 1, 2),
