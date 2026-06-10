@@ -1,0 +1,29 @@
+node_modules
+dist
+.next
+*.log
+.DS_Store
+.env*
+.playwright-mcp
+
+# generated clip artifacts
+tamperbell-clip.*
+tamperbell-*-poster.png
+tamperbell-demo.*
+assets/
+*.tgz
+
+# secrets + any captured config samples (never commit real configs or keys)
+secrets/
+*.pem
+*.key
+*.local.json
+
+# Kept LOCAL only: strategy, internal process, project rules (never committed,
+# so public history reads as the author's own - same posture as veriscrape/buildbeat).
+# The PUBLIC face is README.md + WHY.md + LICENSE + NOTICE + src + tests + community files.
+.claude/
+CLAUDE.md
+PLAN.md
+research/
+docs/

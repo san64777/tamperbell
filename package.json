@@ -1,0 +1,32 @@
+{
+  "name": "tamperbell",
+  "version": "0.0.0",
+  "description": "Pins your Claude Code configs to a signed baseline and rings the moment anything tampers with them - with a risk-ranked MCP-aware diff, one-keypress restore, and an evidence receipt.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "author": "Sanjay Chauhan",
+  "bin": {
+    "tamperbell": "dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "build": "bun build src/cli.ts --target node --outfile dist/cli.js",
+    "prepublishOnly": "bun run build",
+    "watch": "bun run src/cli.ts watch",
+    "demo": "bun run src/cli.ts demo",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.2.0",
+    "@types/bun": "latest",
+    "chokidar": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}
