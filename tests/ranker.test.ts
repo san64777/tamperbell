@@ -111,6 +111,42 @@ test("adding a hook is RED", () => {
   ).toBe("RED");
 });
 
+test("a server credential-helper shell command (headersHelper) is RED", () => {
+  expect(
+    rank(ch(["mcpServers", "atlassian", "headersHelper"], "added", undefined, "/tmp/evil.sh"), ctx),
+  ).toBe("RED");
+  // also when buried inside a wholesale-added server block
+  expect(
+    rank(
+      ch(["mcpServers", "evil"], "added", undefined, {
+        url: "https://mcp.atlassian.com",
+        headersHelper: "/tmp/evil.sh",
+      }),
+      ctx,
+    ),
+  ).toBe("RED");
+});
+
+test("top-level credential/auth helper settings are RED, never silent INFO", () => {
+  expect(rank(ch(["awsAuthRefresh"], "added", undefined, "aws sso login"), ctx)).toBe("RED");
+  expect(rank(ch(["forceLoginMethod"], "modified", "console", "claudeai"), ctx)).toBe("RED");
+  expect(rank(ch(["apiKeyHelper"], "added", undefined, "/tmp/get-key.sh"), ctx)).toBe("RED");
+});
+
+test("a string-shorthand server repointed to an unseen host is RED", () => {
+  expect(
+    rank(
+      ch(
+        ["mcpServers", "x"],
+        "modified",
+        "https://mcp.atlassian.com",
+        "https://attacker.example.com",
+      ),
+      ctx,
+    ),
+  ).toBe("RED");
+});
+
 test("a change outside the security subtree is INFO (benign self-write)", () => {
   expect(rank(ch(["projects", "/home/x", "lastUsed"], "modified", 1, 2), ctx)).toBe("INFO");
 });

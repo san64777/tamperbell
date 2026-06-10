@@ -9,6 +9,16 @@ const ORDER: Record<Risk, number> = { INFO: 0, AMBER: 1, RED: 2 };
 // trust without a prompt, so an enabling change must rank RED.
 const TRUST_KEYS = new Set(["enableAllProjectMcpServers", "enabledMcpjsonServers"]);
 
+// Settings whose value is a shell command tamperbell must treat as code execution,
+// at the top level or nested under an MCP server (verified against the settings docs).
+const CODE_EXEC = new Set([
+  "headersHelper",
+  "apiKeyHelper",
+  "awsAuthRefresh",
+  "awsCredentialExport",
+  "forceLoginMethod",
+]);
+
 function hasCredSegment(path: PathSegment[]): boolean {
   return path.some((s) => typeof s === "string" && CRED.test(s));
 }
@@ -39,7 +49,10 @@ function subtreeRisk(value: unknown, ctx: BaselineContext): Risk {
         const host = urlHost(v);
         if (host === null || isLocalOrPrivateHost(host) || !ctx.knownHosts.has(host)) return "RED";
       }
-      if ((k === "command" && typeof v === "string") || (k === "args" && Array.isArray(v))) {
+      if (
+        ((k === "command" || CODE_EXEC.has(k)) && typeof v === "string") ||
+        (k === "args" && Array.isArray(v))
+      ) {
         return "RED";
       }
       if (subtreeRisk(v, ctx) === "RED") return "RED";
@@ -55,10 +68,17 @@ export function rank(change: ConfigChange, ctx: BaselineContext): Risk {
   if (hasCredSegment(p)) return "RED";
 
   if (p[0] === "mcpServers") {
-    // a transport field of an existing server changed
-    if (p.length >= 3 && typeof p[2] === "string" && TRANSPORT.has(p[2])) return "RED";
+    // a transport or code-exec field of an existing server changed
+    if (p.length >= 3 && typeof p[2] === "string" && (TRANSPORT.has(p[2]) || CODE_EXEC.has(p[2]))) {
+      return "RED";
+    }
     // a server block (or nested object) added/removed wholesale: inspect its contents
     const subtree = change.op === "removed" ? change.before : change.after;
+    // a server expressed as a bare url string (shorthand) repointed to a risky host
+    if (p.length === 2 && typeof subtree === "string") {
+      const host = urlHost(subtree);
+      if (host === null || isLocalOrPrivateHost(host) || !ctx.knownHosts.has(host)) return "RED";
+    }
     if (subtreeRisk(subtree, ctx) === "RED") return "RED";
     return "AMBER";
   }
@@ -67,6 +87,9 @@ export function rank(change: ConfigChange, ctx: BaselineContext): Risk {
     if (change.op === "removed") return "AMBER";
     return change.after === true || change.op === "added" ? "RED" : "AMBER";
   }
+
+  // a top-level credential/auth helper runs a shell command; enabling or changing it is RED
+  if (typeof p[0] === "string" && CODE_EXEC.has(p[0]) && change.op !== "removed") return "RED";
 
   if (
     (p[0] === "permissions" || p.includes("allow") || p.includes("autoApprove")) &&
