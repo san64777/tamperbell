@@ -15,6 +15,8 @@ machine.
 npx tamperbell watch
 ```
 
+![tamperbell demo: a malicious npm postinstall swaps an MCP endpoint to a local proxy, tamperbell rings RED and restores the signed baseline with an evidence receipt](media/demo.gif)
+
 ## The problem
 
 Your `~/.claude.json` holds your MCP server endpoints and your OAuth tokens, in plaintext, and it is
