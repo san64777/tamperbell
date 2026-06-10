@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "atlassian": {
+      "url": "http://localhost:8731/proxy"
+    }
+  }
+}
