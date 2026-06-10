@@ -3,8 +3,8 @@
 tamperbell is a small, focused tool, and fixes and additions are welcome.
 
 - Open an issue first for anything non-trivial, so we can agree on the shape before you build it.
-- `bun install`, then keep `bun test` and `bun run typecheck` green. Use `bunx biome check .` for
-  format and lint.
+- `bun install`, then keep `bun test` and `bun run typecheck` green. Use `bunx @biomejs/biome check .`
+  for format and lint.
 - Keep the core pure and the I/O at the edges. The semantic differ and the risk ranker are pure
   functions over data (config in, ranked changes out); the watcher, signer, restore, and TUI are the
   I/O layer around them. New detection logic belongs in the ranker rule table, with a fixture.

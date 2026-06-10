@@ -5,6 +5,25 @@
   "type": "module",
   "license": "Apache-2.0",
   "author": "Sanjay Chauhan",
+  "keywords": [
+    "claude-code",
+    "mcp",
+    "security",
+    "integrity",
+    "tamper-detection",
+    "config",
+    "watcher",
+    "baseline",
+    "cli"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/san64777/tamperbell.git"
+  },
+  "homepage": "https://github.com/san64777/tamperbell#readme",
+  "bugs": {
+    "url": "https://github.com/san64777/tamperbell/issues"
+  },
   "bin": {
     "tamperbell": "dist/cli.js"
   },
