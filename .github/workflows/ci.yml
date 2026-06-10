@@ -14,3 +14,9 @@ jobs:
       - run: bun run typecheck
       - run: bun test
       - run: bun run build
+      # exercise the published artifact under the advertised Node floor, so a
+      # bundling/packaging break (e.g. an unresolved dep) fails CI, not users
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.11"
+      - run: node dist/cli.js help

@@ -15,7 +15,7 @@
     "node": ">=20.11"
   },
   "scripts": {
-    "build": "bun build src/cli.ts --target node --outfile dist/cli.js",
+    "build": "bun build src/cli.ts --target node --outfile dist/cli.js --packages external",
     "prepublishOnly": "bun run build",
     "watch": "bun run src/cli.ts watch",
     "demo": "bun run src/cli.ts demo",
@@ -26,10 +26,10 @@
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",
     "@types/bun": "latest",
-    "chokidar": "^5.0.0",
     "typescript": "^5.6.0"
   },
   "dependencies": {
+    "chokidar": "^5.0.0",
     "jsonc-parser": "^3.3.1"
   }
 }
