@@ -12,7 +12,7 @@ test("fires a debounced event when a watched file changes", async () => {
   const events: string[] = [];
   const handle = watchPaths([file], { usePolling: true, debounceMs: 50 }, (p) => events.push(p));
 
-  await new Promise((r) => setTimeout(r, 400)); // let the watcher initialize
+  await handle.ready; // armed; changes from here on fire
   writeFileSync(file, '{"a":1}');
   await new Promise((r) => setTimeout(r, 900)); // awaitWriteFinish + debounce
   await handle.close();

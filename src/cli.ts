@@ -44,44 +44,65 @@ function ask(question: string): Promise<string> {
   });
 }
 
-async function cmdWatch(): Promise<number> {
+async function cmdWatch(once: boolean): Promise<number> {
   let baseline = ensureBaseline();
   const sd = stateDir();
   const paths = Object.keys(baseline.entries);
-  out(`watching ${paths.length} configs (Ctrl-C to stop)\n`);
 
-  let busy = false;
-  watchPaths(paths, { usePolling: process.env.TAMPERBELL_POLL === "1" }, async (p) => {
-    if (busy) return;
-    const entry = baseline.entries[p];
-    if (!entry) return;
-    const alert = handleChange(entry);
-    if (!alert) return;
-    if (alert.maxRisk === "INFO" && process.env.TAMPERBELL_VERBOSE !== "1") {
-      out(`  INFO  ${p} reformatted (no semantic change)\n`);
-      return;
-    }
-    busy = true;
-    try {
-      out(`\n${renderAlert(alert)}\n`);
-      const answer = (await ask("\n[r]estore  [b]less  [q]uarantine  [i]gnore: "))[0] ?? "i";
-      if (answer === "r" || answer === "q") {
-        const action = answer === "r" ? "restore" : "quarantine";
-        const result = applyAction(action, alert, entry, baseline, sd, version);
-        out(`${action} done - baseline restored (verified: ${result.restoreVerified})\n`);
-        out(`receipt: ${result.receiptDir}\n`);
-      } else if (answer === "b") {
-        baseline = pin(resolveSet(), sd);
-        out("blessed - current state is the new signed baseline\n");
-      } else {
-        out("ignored - file left unblessed\n");
-      }
-    } finally {
-      busy = false;
-    }
+  let resolveDone: () => void = () => {};
+  const done = new Promise<void>((r) => {
+    resolveDone = r;
   });
 
-  await new Promise<void>(() => {}); // run until interrupted
+  let busy = false;
+  const handle = watchPaths(
+    paths,
+    { usePolling: process.env.TAMPERBELL_POLL === "1" },
+    async (p) => {
+      if (busy) return;
+      const entry = baseline.entries[p];
+      if (!entry) return;
+      const alert = handleChange(entry);
+      if (!alert) return;
+      if (alert.maxRisk === "INFO" && process.env.TAMPERBELL_VERBOSE !== "1") {
+        out(`  INFO  ${p} reformatted (no semantic change)\n`);
+        return;
+      }
+      busy = true;
+      out(`\n${renderAlert(alert)}\n`);
+      if (once) {
+        const result = applyAction("quarantine", alert, entry, baseline, sd, version);
+        out(
+          `\n  auto-quarantine + restore  ->  baseline restored (verified: ${result.restoreVerified})\n`,
+        );
+        out(`  receipt: ${result.receiptDir}\n`);
+        resolveDone();
+        return;
+      }
+      try {
+        const answer = (await ask("\n[r]estore  [b]less  [q]uarantine  [i]gnore: "))[0] ?? "i";
+        if (answer === "r" || answer === "q") {
+          const action = answer === "r" ? "restore" : "quarantine";
+          const result = applyAction(action, alert, entry, baseline, sd, version);
+          out(`${action} done - baseline restored (verified: ${result.restoreVerified})\n`);
+          out(`receipt: ${result.receiptDir}\n`);
+        } else if (answer === "b") {
+          baseline = pin(resolveSet(), sd);
+          out("blessed - current state is the new signed baseline\n");
+        } else {
+          out("ignored - file left unblessed\n");
+        }
+      } finally {
+        busy = false;
+      }
+    },
+  );
+
+  await handle.ready;
+  out(
+    `watching ${paths.length} configs ${once ? "(--once: auto-restore the first tamper, then exit)" : "(Ctrl-C to stop)"}\n`,
+  );
+  await done;
   return 0;
 }
 
@@ -126,7 +147,7 @@ function cmdRestore(target?: string): number {
 async function main(argv: string[]): Promise<number> {
   switch (argv[2] ?? "help") {
     case "watch":
-      return cmdWatch();
+      return cmdWatch(argv.includes("--once"));
     case "status":
       return cmdStatus();
     case "bless":

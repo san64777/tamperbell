@@ -2,6 +2,7 @@ import { watch as chokidarWatch } from "chokidar";
 
 export interface WatchHandle {
   close: () => Promise<void>;
+  ready: Promise<void>; // resolves once chokidar has armed (after its initial scan)
 }
 
 // chokidar over the resolved paths. awaitWriteFinish handles editor/tool write-then-rename
@@ -36,5 +37,9 @@ export function watchPaths(
   w.on("add", fire);
   w.on("unlink", fire);
 
-  return { close: () => w.close() };
+  const ready = new Promise<void>((resolve) => {
+    w.on("ready", () => resolve());
+  });
+
+  return { close: () => w.close(), ready };
 }
