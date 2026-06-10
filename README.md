@@ -17,9 +17,12 @@ npx tamperbell watch
 ## The problem
 
 Your `~/.claude.json` holds your MCP server endpoints and your OAuth tokens, in plaintext, and it is
-writable by anything that runs as you. In June 2026 that stopped being theoretical: a published
-attack showed a malicious `npm` postinstall script silently rewriting that file to point an MCP
-server at an attacker-controlled proxy, quietly man-in-the-middling your agent's traffic. Nothing
+writable by anything that runs as you. In June 2026 that stopped being theoretical: security
+researchers at [Mitiga](https://www.mitiga.io/blog/claude-code-mcp-token-theft-mitm) showed, and
+[CSO Online](https://www.csoonline.com/article/4181230/claude-code-has-an-mcp-security-problem-and-your-developers-are-already-using-it.html)
+reported on June 5 2026, that a malicious `npm` postinstall script could silently rewrite that file
+to point an MCP server at an attacker-controlled proxy, quietly man-in-the-middling your agent's
+traffic. Nothing
 told you. The config just changed, and the next time your agent talked to that server, it talked to
 someone else.
 
@@ -67,9 +70,10 @@ the floor.
 
 ## Scope
 
-v1 watches Claude Code: `~/.claude.json`, `~/.claude/settings.json`, project `.claude/` settings, and
-project `.mcp.json`. The client layer is pluggable, so support for other MCP clients can be added
-without changing the core.
+v1 watches whichever of these Claude Code configs are present: `~/.claude.json`,
+`~/.claude/settings.json`, project `.claude/settings.json` and `.claude/settings.local.json`, and
+project `.mcp.json`, so the number pinned depends on your setup. The client layer is pluggable, so
+support for other MCP clients can be added without changing the core.
 
 ## License
 
