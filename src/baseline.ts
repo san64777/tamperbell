@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { canonical, canonicalJson } from "./canonical.ts";
 import { urlHost } from "./hosts.ts";
@@ -12,6 +12,7 @@ export interface BaselineEntry {
   kind: WatchedConfig["kind"];
   rawBytesB64: string; // ORIGINAL file bytes - the source of truth for byte-exact restore
   rawSha256: string; // hash of the original bytes - detection + post-restore verification
+  rawMode: number; // original file permission bits - restored alongside the bytes
   snapshot: unknown; // canonical parsed value - for semantic diffing
   parseError: boolean;
   knownHosts: string[]; // hosts of every mcpServers url at pin time - for ranking
@@ -61,13 +62,33 @@ export function pin(configs: WatchedConfig[], stateDir: string): BaselineFile {
   const key = ensureKey(stateDir);
   const entries: Record<string, BaselineEntry> = {};
   for (const cfg of configs) {
-    const raw = readFileSync(cfg.path);
-    const { value, parseError } = parseConfig(raw.toString("utf8"));
+    let raw: Buffer;
+    let mode = 0o600;
+    try {
+      raw = readFileSync(cfg.path);
+      mode = statSync(cfg.path).mode & 0o777;
+    } catch {
+      // file vanished between resolveWatchSet and pin: record it, never crash the pin
+      entries[cfg.path] = {
+        path: cfg.path,
+        kind: cfg.kind,
+        rawBytesB64: "",
+        rawSha256: sha256(Buffer.alloc(0)),
+        rawMode: 0o600,
+        snapshot: null,
+        parseError: true,
+        knownHosts: [],
+      };
+      continue;
+    }
+    // strip a UTF-8 BOM before parsing (the raw bytes, with BOM, are kept for restore)
+    const { value, parseError } = parseConfig(raw.toString("utf8").replace(/^\uFEFF/, ""));
     entries[cfg.path] = {
       path: cfg.path,
       kind: cfg.kind,
       rawBytesB64: raw.toString("base64"),
       rawSha256: sha256(raw),
+      rawMode: mode,
       snapshot: canonical(value),
       parseError,
       knownHosts: collectHosts(value),

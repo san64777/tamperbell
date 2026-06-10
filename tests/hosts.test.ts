@@ -21,9 +21,18 @@ test("flags loopback, rfc1918, link-local, cgnat, .local, ipv6 ula", () => {
     "::1",
     "fe80::1",
     "fd00::1",
+    "::ffff:127.0.0.1",
+    "::ffff:7f00:1",
+    "::ffff:192.168.1.1",
   ]) {
     expect(isLocalOrPrivateHost(h)).toBe(true);
   }
+});
+
+test("classifies an ipv4-mapped ipv6 loopback from a real url as local", () => {
+  const host = urlHost("http://[::ffff:127.0.0.1]:8731/");
+  expect(host).not.toBeNull();
+  expect(host && isLocalOrPrivateHost(host)).toBe(true);
 });
 
 test("does not flag public hosts", () => {

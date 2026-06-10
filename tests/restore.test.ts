@@ -16,6 +16,7 @@ test("restore writes back the exact original bytes and verifies", () => {
     path: file,
     rawBytesB64: Buffer.from(original).toString("base64"),
     rawSha256: createHash("sha256").update(original).digest("hex"),
+    rawMode: 0o644,
   };
 
   // tamper: canonical, comment-free, whitespace-stripped rewrite

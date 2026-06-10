@@ -20,6 +20,9 @@ function push(
   out.push({ path, jsonPath: encodeSegments(path), op, before, after });
 }
 
+// Indices in "removed" changes are positions in the before-array `a`; indices in
+// "added" changes are positions in the after-array `b`. Each is correct within its own
+// array; they are not a shared index space. The ranker keys on field names, not indices.
 function diffArrays(path: PathSegment[], a: unknown[], b: unknown[], out: ConfigChange[]): void {
   const ak = a.map(canonicalJson);
   const bk = b.map(canonicalJson);
