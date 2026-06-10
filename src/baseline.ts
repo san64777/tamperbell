@@ -1,0 +1,97 @@
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { canonical, canonicalJson } from "./canonical.ts";
+import { urlHost } from "./hosts.ts";
+import { parseConfig } from "./parse.ts";
+import { ensureKey, keyFingerprint, sign } from "./sign.ts";
+import type { WatchedConfig } from "./types.ts";
+
+export interface BaselineEntry {
+  path: string;
+  kind: WatchedConfig["kind"];
+  rawBytesB64: string; // ORIGINAL file bytes - the source of truth for byte-exact restore
+  rawSha256: string; // hash of the original bytes - detection + post-restore verification
+  snapshot: unknown; // canonical parsed value - for semantic diffing
+  parseError: boolean;
+  knownHosts: string[]; // hosts of every mcpServers url at pin time - for ranking
+}
+
+export interface BaselineFile {
+  version: 1;
+  createdAt: string; // ISO-8601 (UTC)
+  keyFingerprint: string;
+  entries: Record<string, BaselineEntry>;
+  signature: string;
+}
+
+function sha256(buf: Buffer): string {
+  return createHash("sha256").update(buf).digest("hex");
+}
+
+function collectHosts(value: unknown): string[] {
+  const hosts = new Set<string>();
+  if (value !== null && typeof value === "object" && "mcpServers" in value) {
+    const servers = (value as Record<string, unknown>).mcpServers;
+    if (servers !== null && typeof servers === "object") {
+      for (const v of Object.values(servers as Record<string, unknown>)) {
+        if (v !== null && typeof v === "object") {
+          const url = (v as Record<string, unknown>).url;
+          if (typeof url === "string") {
+            const h = urlHost(url);
+            if (h !== null) hosts.add(h);
+          }
+        }
+      }
+    }
+  }
+  return [...hosts].sort();
+}
+
+function signable(f: Omit<BaselineFile, "signature">): string {
+  return canonicalJson({
+    version: f.version,
+    createdAt: f.createdAt,
+    keyFingerprint: f.keyFingerprint,
+    entries: f.entries,
+  });
+}
+
+export function pin(configs: WatchedConfig[], stateDir: string): BaselineFile {
+  const key = ensureKey(stateDir);
+  const entries: Record<string, BaselineEntry> = {};
+  for (const cfg of configs) {
+    const raw = readFileSync(cfg.path);
+    const { value, parseError } = parseConfig(raw.toString("utf8"));
+    entries[cfg.path] = {
+      path: cfg.path,
+      kind: cfg.kind,
+      rawBytesB64: raw.toString("base64"),
+      rawSha256: sha256(raw),
+      snapshot: canonical(value),
+      parseError,
+      knownHosts: collectHosts(value),
+    };
+  }
+  const base: Omit<BaselineFile, "signature"> = {
+    version: 1,
+    createdAt: new Date().toISOString(),
+    keyFingerprint: keyFingerprint(key),
+    entries,
+  };
+  const file: BaselineFile = { ...base, signature: sign(signable(base), key) };
+  writeFileSync(join(stateDir, "baseline.json"), JSON.stringify(file, null, 2), { mode: 0o600 });
+  return file;
+}
+
+export function loadBaseline(stateDir: string): { file: BaselineFile; valid: boolean } | null {
+  const p = join(stateDir, "baseline.json");
+  if (!existsSync(p)) return null;
+  const file = JSON.parse(readFileSync(p, "utf8")) as BaselineFile;
+  const key = ensureKey(stateDir);
+  return { file, valid: sign(signable(file), key) === file.signature };
+}
+
+export function knownHostsFor(entry: BaselineEntry): Set<string> {
+  return new Set(entry.knownHosts);
+}
